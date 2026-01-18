@@ -119,31 +119,39 @@ function renderMenu() {
     
     menuData.forEach(category => {
         const categoryDiv = document.createElement('div');
-        categoryDiv.className = 'mb-8';
+        categoryDiv.className = 'mb-6 sm:mb-8';
         
         categoryDiv.innerHTML = `
-            <h2 class="text-2xl font-bold mb-4 text-cafe-brown">${category.name}</h2>
-            <div class="grid gap-4">
+            <h2 class="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-cafe-brown px-1">${category.name}</h2>
+            <div class="grid gap-3 sm:gap-4">
                 ${category.items.map(item => `
-                    <div class="bg-white rounded-lg shadow-md p-4 flex justify-between items-center">
-                        <div class="flex-1">
-                            <h3 class="font-semibold text-lg">${item.name}</h3>
-                            <p class="text-gray-600 text-sm mb-2">${item.description}</p>
-                            <p class="font-bold text-cafe-brown">$${item.price.toFixed(2)}</p>
-                        </div>
-                        <div class="flex items-center space-x-3 ml-4">
-                            <button onclick="changeQuantity(${item.id}, -1)" 
-                                class="bg-gray-200 text-gray-700 rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-300 disabled:opacity-50"
-                                ${getItemQuantity(item.id) <= 0 ? 'disabled' : ''}>
-                                -
-                            </button>
-                            <span class="font-bold min-w-[20px] text-center" id="qty-${item.id}">
-                                ${getItemQuantity(item.id)}
-                            </span>
-                            <button onclick="changeQuantity(${item.id}, 1)" 
-                                class="bg-cafe-brown text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-opacity-90">
-                                +
-                            </button>
+                    <div class="bg-white rounded-lg shadow-md p-3 sm:p-4">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                            <div class="flex-1 mb-3 sm:mb-0">
+                                <h3 class="font-semibold text-base sm:text-lg">${item.name}</h3>
+                                <p class="text-gray-600 text-sm mb-2 line-clamp-2">${item.description}</p>
+                                <p class="font-bold text-cafe-brown text-lg">$${item.price.toFixed(2)}</p>
+                            </div>
+                            <div class="flex items-center justify-between sm:justify-center sm:space-x-3 sm:ml-4">
+                                <div class="flex items-center space-x-3">
+                                    <button onclick="changeQuantity(${item.id}, -1)" 
+                                        class="bg-gray-200 text-gray-700 rounded-full w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-gray-300 disabled:opacity-50 text-lg sm:text-base"
+                                        ${getItemQuantity(item.id) <= 0 ? 'disabled' : ''}>
+                                        -
+                                    </button>
+                                    <span class="font-bold min-w-[30px] sm:min-w-[20px] text-center text-lg sm:text-base" id="qty-${item.id}">
+                                        ${getItemQuantity(item.id)}
+                                    </span>
+                                    <button onclick="changeQuantity(${item.id}, 1)" 
+                                        class="bg-cafe-brown text-white rounded-full w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-opacity-90 text-lg sm:text-base">
+                                        +
+                                    </button>
+                                </div>
+                                <button onclick="addToCart(${item.id})" 
+                                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 ml-3 sm:ml-0 text-sm sm:text-base ${getItemQuantity(item.id) <= 0 ? 'hidden' : ''}">
+                                    Add
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `).join('')}
@@ -239,20 +247,23 @@ function updateCartSummary() {
     const placeOrderBtn = document.getElementById('placeOrderBtn');
     
     if (cart.length === 0) {
-        cartItems.innerHTML = '<p class="text-gray-500 text-center">Your cart is empty</p>';
+        cartItems.innerHTML = '<p class="text-gray-500 text-center text-sm">Your cart is empty</p>';
         cartTotal.textContent = '$0.00';
         placeOrderBtn.disabled = true;
         return;
     }
     
     cartItems.innerHTML = cart.map(item => `
-        <div class="flex justify-between items-center mb-2">
-            <div class="flex-1">
-                <span class="font-medium">${item.name}</span>
-                <div class="text-sm text-gray-500">$${item.price.toFixed(2)} x ${item.quantity}</div>
+        <div class="flex justify-between items-start mb-3 pb-2 border-b border-gray-100 last:border-b-0">
+            <div class="flex-1 mr-2">
+                <span class="font-medium text-sm sm:text-base block">${item.name}</span>
+                <div class="text-xs sm:text-sm text-gray-500">$${item.price.toFixed(2)} x ${item.quantity}</div>
             </div>
             <div class="text-right">
-                <span class="font-bold">$${(item.price * item.quantity).toFixed(2)}</span>
+                <span class="font-bold text-sm sm:text-base">$${(item.price * item.quantity).toFixed(2)}</span>
+                <button onclick="removeFromCart(${item.id})" class="block text-xs text-red-500 hover:text-red-700 mt-1">
+                    Remove
+                </button>
             </div>
         </div>
     `).join('');
@@ -335,6 +346,38 @@ function showOrderSuccess(orderData) {
     `;
     
     modal.classList.remove('hidden');
+}
+
+// Add item directly to cart (for mobile add buttons)
+function addToCart(itemId) {
+    const item = findMenuItem(itemId);
+    if (item) {
+        const existingItem = cart.find(cartItem => cartItem.id === itemId);
+        if (existingItem) {
+            existingItem.quantity += 1;
+        } else {
+            cart.push({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: 1
+            });
+        }
+        updateCartDisplay();
+        updateCartSummary();
+        renderMenu(); // Re-render to update button visibility
+    }
+}
+
+// Remove item from cart
+function removeFromCart(itemId) {
+    const index = cart.findIndex(item => item.id === itemId);
+    if (index !== -1) {
+        cart.splice(index, 1);
+        updateCartDisplay();
+        updateCartSummary();
+        renderMenu(); // Re-render to update quantities and buttons
+    }
 }
 
 function closeOrderModal() {
