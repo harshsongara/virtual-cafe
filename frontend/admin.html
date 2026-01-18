@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Cafe - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'cafe-brown': '#8B4513',
+                        'cafe-cream': '#F5F5DC'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 class="text-2xl font-bold mb-6 text-center text-cafe-brown">Admin Login</h2>
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Username</label>
+                    <input type="text" id="username" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-cafe-brown" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                    <input type="password" id="password" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-cafe-brown" required>
+                </div>
+                <button type="submit" class="w-full bg-cafe-brown text-white py-2 px-4 rounded-lg hover:bg-opacity-90">
+                    Login
+                </button>
+                <div id="loginError" class="text-red-500 text-sm mt-2 hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-cafe-brown text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Virtual Cafe - Admin Dashboard</h1>
+                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white shadow-md">
+        <div class="container mx-auto px-4">
+            <div class="flex space-x-8">
+                <button onclick="showTab('dashboard')" class="tab-button py-4 px-2 border-b-2 border-cafe-brown text-cafe-brown font-medium">
+                    Dashboard
+                </button>
+                <button onclick="showTab('orders')" class="tab-button py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-cafe-brown">
+                    Orders
+                </button>
+                <button onclick="showTab('analytics')" class="tab-button py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-cafe-brown">
+                    Analytics
+                </button>
+                <button onclick="showTab('menu')" class="tab-button py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-cafe-brown">
+                    Menu
+                </button>
+                <button onclick="showTab('tables')" class="tab-button py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-cafe-brown">
+                    Tables
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- Dashboard Tab -->
+        <div id="dashboardTab" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-medium text-gray-900">Daily Orders</h3>
+                    <p class="text-3xl font-bold text-cafe-brown" id="dailyOrders">0</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-medium text-gray-900">Daily Revenue</h3>
+                    <p class="text-3xl font-bold text-green-600" id="dailyRevenue">$0.00</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-medium text-gray-900">Active Orders</h3>
+                    <p class="text-3xl font-bold text-blue-600" id="activeOrdersCount">0</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-medium text-gray-900">Tables Active</h3>
+                    <p class="text-3xl font-bold text-purple-600" id="activeTablesCount">0</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-bold mb-4">Popular Items Today</h3>
+                    <div id="popularItems">Loading...</div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-bold mb-4">Recent Activity</h3>
+                    <div id="recentActivity">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders Tab -->
+        <div id="ordersTab" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-xl font-bold">Active Orders</h2>
+                </div>
+                <div class="p-6">
+                    <div id="activeOrdersList">Loading orders...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analyticsTab" class="tab-content hidden">
+            <!-- Time Period Selector -->
+            <div class="bg-white rounded-lg shadow mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold">Analytics & Reports</h2>
+                        <select id="analyticsTimePeriod" class="px-3 py-2 border rounded" onchange="loadAnalyticsData()">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30" selected>Last 30 Days</option>
+                            <option value="90">Last 90 Days</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales Trends Chart -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-bold">Daily Sales Trends</h3>
+                    </div>
+                    <div class="p-6">
+                        <canvas id="salesChart" width="400" height="200"></canvas>
+                        <div id="salesChartData" class="mt-4 text-sm text-gray-600">Loading chart...</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-bold">Peak Hours Analysis</h3>
+                    </div>
+                    <div class="p-6">
+                        <canvas id="peakHoursChart" width="400" height="200"></canvas>
+                        <div id="peakHoursData" class="mt-4 text-sm text-gray-600">Loading chart...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Performance -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-bold">Top Performing Products</h3>
+                    </div>
+                    <div class="p-6">
+                        <div id="topProducts">Loading products...</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-bold">Category Performance</h3>
+                    </div>
+                    <div class="p-6">
+                        <canvas id="categoryChart" width="400" height="300"></canvas>
+                        <div id="categoryData" class="mt-4 text-sm text-gray-600">Loading chart...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Analytics Table -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-bold">Detailed Product Analytics</h3>
+                </div>
+                <div class="p-6">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity Sold</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Price</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
+                                </tr>
+                            </thead>
+                            <tbody id="analyticsTable" class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">Loading analytics data...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu Tab -->
+        <div id="menuTab" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-xl font-bold">Menu Management</h2>
+                    <button onclick="showAddItemModal()" class="bg-cafe-brown text-white px-4 py-2 rounded hover:bg-opacity-90">
+                        Add Item
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div id="menuItemsList">Loading menu items...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tables Tab -->
+        <div id="tablesTab" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-xl font-bold">Table Management</h2>
+                    <button onclick="showAddTableModal()" class="bg-cafe-brown text-white px-4 py-2 rounded hover:bg-opacity-90">
+                        Add Table
+                    </button>
+                </div>
+                <div class="p-6">
+                    <div id="tablesList">Loading tables...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <!-- Add/Edit Item Modal -->
+    <div id="itemModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold mb-4" id="itemModalTitle">Add Menu Item</h3>
+            <form id="itemForm">
+                <input type="hidden" id="itemId">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Name</label>
+                    <input type="text" id="itemName" class="w-full px-3 py-2 border rounded focus:outline-none focus:border-cafe-brown" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                    <textarea id="itemDescription" class="w-full px-3 py-2 border rounded focus:outline-none focus:border-cafe-brown" rows="3"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Price</label>
+                    <input type="number" id="itemPrice" step="0.01" min="0" class="w-full px-3 py-2 border rounded focus:outline-none focus:border-cafe-brown" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Category</label>
+                    <select id="itemCategory" class="w-full px-3 py-2 border rounded focus:outline-none focus:border-cafe-brown" required>
+                        <option value="">Select Category</option>
+                        <option value="1">Beverages</option>
+                        <option value="2">Food</option>
+                        <option value="3">Desserts</option>
+                    </select>
+                </div>
+                <div class="mb-6">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="itemAvailable" class="mr-2" checked>
+                        <span class="text-gray-700">Available</span>
+                    </label>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeItemModal()" class="px-4 py-2 border rounded hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-cafe-brown text-white px-4 py-2 rounded hover:bg-opacity-90">
+                        Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Table Modal -->
+    <div id="tableModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold mb-4">Add Table</h3>
+            <form id="tableForm">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Table Number</label>
+                    <input type="number" id="tableNumber" min="1" max="99" class="w-full px-3 py-2 border rounded focus:outline-none focus:border-cafe-brown" required>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeTableModal()" class="px-4 py-2 border rounded hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-cafe-brown text-white px-4 py-2 rounded hover:bg-opacity-90">
+                        Add Table
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>
