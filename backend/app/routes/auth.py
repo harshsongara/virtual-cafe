@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
-import jwt
 from app import db
 from app.models.models import AdminUser
 
@@ -24,13 +24,14 @@ def login():
             return jsonify({'error': 'Invalid credentials'}), 401
         
         # Generate token
-        token = jwt.encode({
-            'user_id': user.id,
-            'exp': datetime.utcnow() + current_app.config['JWT_EXPIRATION_DELTA']
-        }, current_app.config['SECRET_KEY'], algorithm='HS256')
+        access_token = create_access_token(
+            identity=user.id,
+            expires_delta=current_app.config['JWT_EXPIRATION_DELTA']
+        )
         
         return jsonify({
-            'token': token,
+            'success': True,
+            'token': access_token,
             'expires_in': int(current_app.config['JWT_EXPIRATION_DELTA'].total_seconds()),
             'user': user.to_dict()
         })
@@ -39,34 +40,19 @@ def login():
         return jsonify({'error': str(e)}), 500
 
 @auth_bp.route('/validate', methods=['GET'])
+@jwt_required()
 def validate_token():
     try:
-        token = None
+        user_id = get_jwt_identity()
+        user = AdminUser.query.get(user_id)
         
-        if 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization']
-            try:
-                token = auth_header.split(" ")[1]
-            except IndexError:
-                return jsonify({'error': 'Invalid token format'}), 401
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+            
+        return jsonify({
+            'valid': True,
+            'user': user.to_dict()
+        })
         
-        if not token:
-            return jsonify({'error': 'Token is missing'}), 401
-        
-        try:
-            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
-            user_id = data['user_id']
-            user = AdminUser.query.get(user_id)
-            
-            if not user:
-                return jsonify({'error': 'User not found'}), 401
-                
-            return jsonify({'valid': True, 'user': user.to_dict()})
-            
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Token has expired'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'error': 'Token is invalid'}), 401
-            
     except Exception as e:
         return jsonify({'error': str(e)}), 500

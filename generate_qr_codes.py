@@ -2,7 +2,7 @@ import qrcode
 import os
 from PIL import Image, ImageDraw, ImageFont
 
-def generate_table_qr_codes(base_url="http://localhost:8080", num_tables=20):
+def generate_table_qr_codes(base_url="http://127.0.0.1:5000", num_tables=20):
     """Generate QR codes for table numbers"""
     
     # Create QR codes directory
@@ -39,24 +39,39 @@ def generate_table_qr_codes(base_url="http://localhost:8080", num_tables=20):
         draw = ImageDraw.Draw(final_img)
         try:
             font = ImageFont.truetype("arial.ttf", 24)
-        except:
-            font = ImageFont.load_default()
+        except OSError:
+            try:
+                # Try alternative font paths
+                font = ImageFont.truetype("C:\\Windows\\Fonts\\arial.ttf", 24)
+            except OSError:
+                font = ImageFont.load_default()
         
         text = f"TABLE {table_num}"
-        text_bbox = draw.textbbox((0, 0), text, font=font)
-        text_width = text_bbox[2] - text_bbox[0]
+        try:
+            text_bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = text_bbox[2] - text_bbox[0]
+        except AttributeError:
+            # Fallback for older Pillow versions
+            text_width = draw.textsize(text, font=font)[0]
         text_x = (img_width - text_width) // 2
         draw.text((text_x, 280), text, fill="black", font=font)
         
         # Add URL text
         try:
             small_font = ImageFont.truetype("arial.ttf", 12)
-        except:
-            small_font = ImageFont.load_default()
+        except OSError:
+            try:
+                small_font = ImageFont.truetype("C:\\Windows\\Fonts\\arial.ttf", 12)
+            except OSError:
+                small_font = ImageFont.load_default()
         
         url_text = url
-        url_bbox = draw.textbbox((0, 0), url_text, font=small_font)
-        url_width = url_bbox[2] - url_bbox[0]
+        try:
+            url_bbox = draw.textbbox((0, 0), url_text, font=small_font)
+            url_width = url_bbox[2] - url_bbox[0]
+        except AttributeError:
+            # Fallback for older Pillow versions
+            url_width = draw.textsize(url_text, font=small_font)[0]
         url_x = (img_width - url_width) // 2
         draw.text((url_x, 315), url_text, fill="gray", font=small_font)
         
@@ -66,7 +81,29 @@ def generate_table_qr_codes(base_url="http://localhost:8080", num_tables=20):
         print(f"Generated QR code for Table {table_num}: {filename}")
 
 if __name__ == "__main__":
-    print("Generating QR codes for tables...")
-    generate_table_qr_codes()
-    print("QR codes generated successfully!")
+    import sys
+    
+    print("Generating QR codes for Virtual Cafe tables...")
+    
+    # Check if custom URL is provided
+    if len(sys.argv) > 1:
+        custom_url = sys.argv[1]
+        print(f"Using custom URL: {custom_url}")
+        generate_table_qr_codes(custom_url)
+    else:
+        print("Using default URL: http://127.0.0.1:5000")
+        print("To use ngrok URL, run: python generate_qr_codes.py https://your-ngrok-url.ngrok.io")
+        generate_table_qr_codes()
+    
+    print("\\nQR codes generated successfully!")
+    print("Files saved in 'qr_codes' directory")
     print("You can print these QR codes and place them on your tables.")
+    print("\\nTo use:")
+    print("1. Print the QR codes")
+    print("2. Place them on tables")
+    print("3. Customers scan the QR code to access the menu")
+    print("\\nFor ngrok sharing:")
+    print("1. Run: ngrok http 5000")
+    print("2. Copy the https URL from ngrok")
+    print("3. Run: python generate_qr_codes.py https://your-ngrok-url.ngrok.io")
+    print("4. Share the new QR codes with colleagues")

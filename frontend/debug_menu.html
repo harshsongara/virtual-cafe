@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Menu Loading</title>
+    <script>
+        function testMenuAPI() {
+            console.log('Testing menu API...');
+            
+            fetch('http://127.0.0.1:5000/api/menu')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Full API Response:', data);
+                    console.log('Success:', data.success);
+                    console.log('Categories count:', data.categories ? data.categories.length : 0);
+                    
+                    if (data.categories) {
+                        data.categories.forEach((cat, i) => {
+                            console.log(`Category ${i+1}: ${cat.name} (${cat.items.length} items)`);
+                        });
+                    }
+                    
+                    // Test the menu button elements
+                    const menuButton = document.getElementById('floatingCategoryButton');
+                    console.log('Menu button found:', !!menuButton);
+                    
+                    const categoryModal = document.getElementById('categoryMenuModal');
+                    console.log('Category modal found:', !!categoryModal);
+                    
+                    const categoryList = document.getElementById('categoryMenuList');
+                    console.log('Category list found:', !!categoryList);
+                    
+                    // Test menu rendering
+                    const menuContainer = document.getElementById('menuItems');
+                    console.log('Menu container found:', !!menuContainer);
+                    
+                })
+                .catch(error => {
+                    console.error('API Error:', error);
+                });
+        }
+        
+        // Test on page load
+        window.addEventListener('load', testMenuAPI);
+    </script>
+</head>
+<body>
+    <h1>Debug Menu Loading</h1>
+    <button onclick="testMenuAPI()">Test Menu API</button>
+    
+    <!-- Test elements -->
+    <div id="floatingCategoryButton">Menu Button Test</div>
+    <div id="categoryMenuModal">Modal Test</div>
+    <div id="categoryMenuList">Category List Test</div>
+    <div id="menuItems">Menu Items Test</div>
+    
+    <div id="output"></div>
+</body>
+</html>

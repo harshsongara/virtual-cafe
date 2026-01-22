@@ -4,170 +4,457 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Virtual Cafe - Admin Dashboard</title>
+    <!-- Development Mode: Using Tailwind CDN for rapid prototyping. For production, use PostCSS plugin or Tailwind CLI -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'cafe-brown': '#8B4513',
-                        'cafe-cream': '#F5F5DC'
+                        'tea-green': '#2D5016',
+                        'tea-light-green': '#4A7C59',
+                        'tea-cream': '#F5F1E8',
+                        'tea-dark-green': '#1B3209',
+                        'tea-accent': '#6B8E23'
+                    },
+                    fontFamily: {
+                        'poppins': ['Poppins', 'sans-serif']
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 3s infinite',
+                        'pulse-slow': 'pulse 3s infinite',
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'slide-in': 'slideIn 0.4s ease-out',
+                        'scale-up': 'scaleUp 0.3s ease-out'
                     }
                 }
             }
         }
     </script>
     <style>
-        /* Mobile touch improvements */
+        :root {
+            --cafe-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #2D6A4F 0%, #40916C 100%);
+            --warning-gradient: linear-gradient(135deg, #F59E0B 0%, #EAB308 100%);
+            --danger-gradient: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+        }
+        
+        /* Custom Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes scaleUp {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        /* Glass Effects */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .glass-dark {
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Gradient Cards */
+        .gradient-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Stats Cards */
+        .stat-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        /* Table Styling */
+        .modern-table {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .modern-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .modern-table tr:hover {
+            background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+        }
+        
+        /* Button Styles */
+        .btn-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-success {
+            background: var(--success-gradient);
+        }
+        
+        .btn-warning {
+            background: var(--warning-gradient);
+        }
+        
+        .btn-danger {
+            background: var(--danger-gradient);
+        }
+        
+        /* Mobile Optimizations */
         button {
             touch-action: manipulation;
         }
         
-        /* Better mobile scrolling for tabs */
-        nav .flex {
+        .overflow-x-auto {
             -webkit-overflow-scrolling: touch;
         }
         
-        /* Prevent zoom on input focus */
         @media screen and (max-width: 768px) {
             input, select, textarea {
                 font-size: 16px !important;
             }
         }
         
-        /* Table responsive improvements */
-        .table-container {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
+        /* Loading State */
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
         }
         
-        /* Better mobile form layouts */
-        @media screen and (max-width: 640px) {
-            .mobile-stack {
-                flex-direction: column !important;
-            }
-            
-            .mobile-full {
-                width: 100% !important;
-            }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(45deg, #764ba2, #667eea);
         }
     </style>
+
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen font-poppins">
     <!-- Login Modal -->
-    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg p-4 sm:p-8 max-w-md w-full">
-            <h2 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center text-cafe-brown">Admin Login</h2>
-            <form id="loginForm">
-                <div class="mb-3 sm:mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Username</label>
-                    <input type="text" id="username" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-cafe-brown text-sm sm:text-base" required>
+    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+        <div class="glass-card rounded-2xl p-6 sm:p-8 max-w-md w-full animate-scale-up">
+            <!-- Login Header -->
+            <div class="text-center mb-6">
+                <div class="bg-gradient-to-r from-tea-green to-tea-light-green p-4 rounded-2xl inline-block mb-4">
+                    <i class="fas fa-leaf text-white text-3xl"></i>
                 </div>
-                <div class="mb-4 sm:mb-6">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
-                    <input type="password" id="password" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-cafe-brown text-sm sm:text-base" required>
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Admin Portal</h2>
+                <p class="text-gray-600">Access The Tea Estate dashboard</p>
+            </div>
+            
+            <form id="loginForm" class="space-y-4">
+                <div class="relative">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">
+                        <i class="fas fa-user mr-2"></i>Username
+                    </label>
+                    <input type="text" id="username" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cafe-blue focus:border-transparent text-sm sm:text-base transition-all" 
+                           placeholder="Enter your username" required>
                 </div>
-                <button type="submit" class="w-full bg-cafe-brown text-white py-2 px-4 rounded-lg hover:bg-opacity-90 text-sm sm:text-base">
-                    Login
+                <div class="relative">
+                    <label class="block text-gray-700 text-sm font-semibold mb-2">
+                        <i class="fas fa-lock mr-2"></i>Password
+                    </label>
+                    <input type="password" id="password" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cafe-blue focus:border-transparent text-sm sm:text-base transition-all" 
+                           placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="w-full btn-gradient text-white py-3 px-4 rounded-xl font-semibold text-sm sm:text-base">
+                    <i class="fas fa-sign-in-alt mr-2"></i>
+                    Login to Dashboard
                 </button>
-                <div id="loginError" class="text-red-500 text-sm mt-2 hidden"></div>
+                <div id="loginError" class="text-red-500 text-sm mt-2 hidden bg-red-50 p-3 rounded-lg border border-red-200"></div>
             </form>
         </div>
     </div>
 
-    <!-- Header -->
-    <header class="bg-cafe-brown text-white shadow-lg sticky top-0 z-40">
-        <div class="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
+    <!-- Modern Header -->
+    <header class="bg-gradient-to-r from-tea-green to-tea-light-green text-white shadow-2xl sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-4">
             <div class="flex justify-between items-center">
-                <h1 class="text-lg sm:text-2xl font-bold truncate">Virtual Cafe - Admin</h1>
-                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 px-2 sm:px-4 py-1 sm:py-2 rounded text-xs sm:text-sm">
+                <div class="flex items-center">
+                    <div class="bg-white bg-opacity-20 p-2 rounded-xl mr-4">
+                        <i class="fas fa-leaf text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-bold">The Tea Estate</h1>
+                        <p class="text-sm opacity-90">Admin Dashboard</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="btn-danger text-white px-4 py-2 rounded-xl font-semibold text-sm hover:transform hover:scale-105 transition-all">
+                    <i class="fas fa-sign-out-alt mr-2"></i>
                     Logout
-                </button>
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Navigation Tabs -->
-    <nav class="bg-white shadow-md overflow-x-auto">
-        <div class="container mx-auto px-2 sm:px-4">
-            <div class="flex space-x-2 sm:space-x-8 min-w-max sm:min-w-0">
-                <button onclick="showTab('dashboard')" class="tab-button py-3 sm:py-4 px-2 sm:px-2 border-b-2 border-cafe-brown text-cafe-brown font-medium text-sm sm:text-base whitespace-nowrap">
+    <!-- Modern Navigation Tabs -->
+    <nav class="bg-white shadow-lg border-b">
+        <div class="container mx-auto px-4">
+            <div class="flex space-x-1 overflow-x-auto scrollbar-hide">
+                <button onclick="showTab('dashboard')" class="tab-button flex items-center py-4 px-6 border-b-3 border-cafe-blue text-cafe-blue font-semibold text-sm whitespace-nowrap transition-all">
+                    <i class="fas fa-chart-line mr-2"></i>
                     Dashboard
                 </button>
-                <button onclick="showTab('orders')" class="tab-button py-3 sm:py-4 px-2 sm:px-2 border-b-2 border-transparent text-gray-600 hover:text-cafe-brown text-sm sm:text-base whitespace-nowrap">
+                <button onclick="showTab('orders')" class="tab-button flex items-center py-4 px-6 border-b-3 border-transparent text-gray-600 hover:text-cafe-blue hover:bg-gray-50 text-sm whitespace-nowrap transition-all">
+                    <i class="fas fa-shopping-bag mr-2"></i>
                     Orders
                 </button>
-                <button onclick="showTab('analytics')" class="tab-button py-3 sm:py-4 px-2 sm:px-2 border-b-2 border-transparent text-gray-600 hover:text-cafe-brown text-sm sm:text-base whitespace-nowrap">
+                <button onclick="showTab('analytics')" class="tab-button flex items-center py-4 px-6 border-b-3 border-transparent text-gray-600 hover:text-cafe-blue hover:bg-gray-50 text-sm whitespace-nowrap transition-all">
+                    <i class="fas fa-chart-bar mr-2"></i>
                     Analytics
                 </button>
-                <button onclick="showTab('menu')" class="tab-button py-3 sm:py-4 px-2 sm:px-2 border-b-2 border-transparent text-gray-600 hover:text-cafe-brown text-sm sm:text-base whitespace-nowrap">
+                <button onclick="showTab('menu')" class="tab-button flex items-center py-4 px-6 border-b-3 border-transparent text-gray-600 hover:text-cafe-blue hover:bg-gray-50 text-sm whitespace-nowrap transition-all">
+                    <i class="fas fa-utensils mr-2"></i>
                     Menu
                 </button>
-                <button onclick="showTab('tables')" class="tab-button py-3 sm:py-4 px-2 sm:px-2 border-b-2 border-transparent text-gray-600 hover:text-cafe-brown text-sm sm:text-base whitespace-nowrap">
+                <button onclick="showTab('tables')" class="tab-button flex items-center py-4 px-6 border-b-3 border-transparent text-gray-600 hover:text-cafe-blue hover:bg-gray-50 text-sm whitespace-nowrap transition-all">
+                    <i class="fas fa-chair mr-2"></i>
                     Tables
                 </button>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <main class="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
+    <!-- Main Content with Modern Layout -->
+    <main class="container mx-auto px-4 py-6">
         <!-- Dashboard Tab -->
         <div id="dashboardTab" class="tab-content">
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
-                <div class="bg-white p-3 sm:p-6 rounded-lg shadow">
-                    <h3 class="text-sm sm:text-lg font-medium text-gray-900 mb-1 sm:mb-0">Daily Orders</h3>
-                    <p class="text-xl sm:text-3xl font-bold text-cafe-brown" id="dailyOrders">0</p>
+            <!-- Welcome Section -->
+            <div class="gradient-card rounded-2xl p-6 mb-8 animate-fade-in">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Welcome Back, Admin!</h2>
+                        <p class="text-gray-600">Here's what's happening at The Tea Estate today</p>
+                    </div>
+                    <div class="hidden sm:block text-6xl animate-bounce">
+                        <i class="fas fa-leaf text-tea-accent"></i>
+                    </div>
                 </div>
-                <div class="bg-white p-3 sm:p-6 rounded-lg shadow">
-                    <h3 class="text-sm sm:text-lg font-medium text-gray-900 mb-1 sm:mb-0">Daily Revenue</h3>
-                    <p class="text-xl sm:text-3xl font-bold text-green-600" id="dailyRevenue">$0.00</p>
+            </div>
+            
+            <!-- Stats Cards Grid -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+                <!-- Daily Orders Card -->
+                <div class="stat-card gradient-card rounded-2xl p-4 sm:p-6 animate-slide-in cursor-pointer hover:shadow-xl transform hover:scale-105 transition-all duration-300" 
+                     onclick="openOrdersDetail()" title="Click to view detailed orders">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="bg-cafe-blue bg-opacity-20 p-3 rounded-xl">
+                            <i class="fas fa-shopping-bag text-cafe-blue text-xl"></i>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl sm:text-3xl font-bold text-gray-800" id="dailyOrders">0</p>
+                            <p class="text-sm text-gray-600">+12% from yesterday</p>
+                        </div>
+                    </div>
+                    <h3 class="text-sm sm:text-base font-semibold text-gray-700">Daily Orders <i class="fas fa-external-link-alt ml-1 text-xs opacity-60"></i></h3>
                 </div>
-                <div class="bg-white p-3 sm:p-6 rounded-lg shadow">
-                    <h3 class="text-sm sm:text-lg font-medium text-gray-900 mb-1 sm:mb-0">Active Orders</h3>
-                    <p class="text-xl sm:text-3xl font-bold text-blue-600" id="activeOrdersCount">0</p>
+                
+                <!-- Daily Revenue Card -->
+                <div class="stat-card gradient-card rounded-2xl p-4 sm:p-6 animate-slide-in cursor-pointer hover:shadow-xl transform hover:scale-105 transition-all duration-300" 
+                     style="animation-delay: 0.1s;" onclick="openRevenueDetail()" title="Click to view revenue breakdown">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="bg-cafe-green bg-opacity-20 p-3 rounded-xl">
+                            <i class="fas fa-dollar-sign text-cafe-green text-xl"></i>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl sm:text-3xl font-bold text-gray-800" id="dailyRevenue">₹0.00</p>
+                            <p class="text-sm text-gray-600">+8% from yesterday</p>
+                        </div>
+                    </div>
+                    <h3 class="text-sm sm:text-base font-semibold text-gray-700">Daily Revenue <i class="fas fa-external-link-alt ml-1 text-xs opacity-60"></i></h3>
                 </div>
-                <div class="bg-white p-3 sm:p-6 rounded-lg shadow">
-                    <h3 class="text-sm sm:text-lg font-medium text-gray-900 mb-1 sm:mb-0">Tables Active</h3>
-                    <p class="text-xl sm:text-3xl font-bold text-purple-600" id="activeTablesCount">0</p>
+                
+                <!-- Active Orders Card -->
+                <div class="stat-card gradient-card rounded-2xl p-4 sm:p-6 animate-slide-in cursor-pointer hover:shadow-xl transform hover:scale-105 transition-all duration-300" 
+                     style="animation-delay: 0.2s;" onclick="switchTab('orders')" title="Click to manage active orders">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="bg-cafe-orange bg-opacity-20 p-3 rounded-xl">
+                            <i class="fas fa-clock text-cafe-orange text-xl"></i>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl sm:text-3xl font-bold text-gray-800" id="activeOrdersCount">0</p>
+                            <p class="text-sm text-gray-600">Currently processing</p>
+                        </div>
+                    </div>
+                    <h3 class="text-sm sm:text-base font-semibold text-gray-700">Active Orders <i class="fas fa-external-link-alt ml-1 text-xs opacity-60"></i></h3>
+                </div>
+                
+                <!-- Active Tables Card -->
+                <div class="stat-card gradient-card rounded-2xl p-4 sm:p-6 animate-slide-in cursor-pointer hover:shadow-xl transform hover:scale-105 transition-all duration-300" 
+                     style="animation-delay: 0.3s;" onclick="switchTab('tables')" title="Click to manage tables">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="bg-cafe-purple bg-opacity-20 p-3 rounded-xl">
+                            <i class="fas fa-chair text-cafe-purple text-xl"></i>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl sm:text-3xl font-bold text-gray-800" id="activeTablesCount">0</p>
+                            <p class="text-sm text-gray-600">Tables occupied</p>
+                        </div>
+                    </div>
+                    <h3 class="text-sm sm:text-base font-semibold text-gray-700">Active Tables <i class="fas fa-external-link-alt ml-1 text-xs opacity-60"></i></h3>
                 </div>
             </div>
 
+            <!-- Content Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <h3 class="text-lg font-bold mb-4">Popular Items Today</h3>
-                    <div id="popularItems">Loading...</div>
+                <!-- Popular Items Card -->
+                <div class="gradient-card rounded-2xl p-6 animate-fade-in">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-cafe-gold bg-opacity-20 p-3 rounded-xl mr-4">
+                            <i class="fas fa-fire text-cafe-gold text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Popular Items Today</h3>
+                            <p class="text-gray-600 text-sm">Best selling items this session</p>
+                        </div>
+                    </div>
+                    <div id="popularItems" class="space-y-3">
+                        <div class="loading-skeleton h-4 rounded"></div>
+                        <div class="loading-skeleton h-4 rounded w-3/4"></div>
+                        <div class="loading-skeleton h-4 rounded w-1/2"></div>
+                    </div>
                 </div>
                 
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <h3 class="text-lg font-bold mb-4">Recent Activity</h3>
-                    <div id="recentActivity">Loading...</div>
+                <!-- Recent Activity Card -->
+                <div class="gradient-card rounded-2xl p-6 animate-fade-in" style="animation-delay: 0.2s;">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-cafe-blue bg-opacity-20 p-3 rounded-xl mr-4">
+                            <i class="fas fa-bell text-cafe-blue text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">Recent Activity</h3>
+                            <p class="text-gray-600 text-sm">Latest updates and notifications</p>
+                        </div>
+                    </div>
+                    <div id="recentActivity" class="space-y-3">
+                        <div class="loading-skeleton h-4 rounded"></div>
+                        <div class="loading-skeleton h-4 rounded w-4/5"></div>
+                        <div class="loading-skeleton h-4 rounded w-2/3"></div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Orders Tab -->
         <div id="ordersTab" class="tab-content hidden">
-            <div class="bg-white rounded-lg shadow">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-xl font-bold">Active Orders</h2>
+            <!-- Orders Header -->
+            <div class="gradient-card rounded-2xl p-6 mb-6 animate-fade-in">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="bg-cafe-orange bg-opacity-20 p-3 rounded-xl mr-4">
+                            <i class="fas fa-shopping-bag text-cafe-orange text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Order Management</h2>
+                            <p class="text-gray-600">Track and manage customer orders in real-time</p>
+                        </div>
+                    </div>
+                    <div class="hidden sm:flex items-center space-x-2">
+                        <div class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                            <i class="fas fa-circle text-green-500 mr-1"></i>
+                            Live Updates
+                        </div>
+                    </div>
                 </div>
+            </div>
+            
+            <!-- Orders Container -->
+            <div class="gradient-card rounded-2xl shadow-lg animate-slide-up">
                 <div class="p-6">
-                    <div id="activeOrdersList">Loading orders...</div>
+                    <div id="activeOrdersList" class="space-y-4">
+                        <!-- Loading state -->
+                        <div class="animate-pulse space-y-4">
+                            <div class="loading-skeleton h-20 rounded-xl"></div>
+                            <div class="loading-skeleton h-20 rounded-xl"></div>
+                            <div class="loading-skeleton h-20 rounded-xl"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Analytics Tab -->
         <div id="analyticsTab" class="tab-content hidden">
-            <!-- Time Period Selector -->
-            <div class="bg-white rounded-lg shadow mb-6">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-xl font-bold">Analytics & Reports</h2>
-                        <select id="analyticsTimePeriod" class="px-3 py-2 border rounded" onchange="loadAnalyticsData()">
+            <!-- Analytics Header -->
+            <div class="gradient-card rounded-2xl p-6 mb-6 animate-fade-in">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between">
+                    <div class="flex items-center mb-4 sm:mb-0">
+                        <div class="bg-cafe-purple bg-opacity-20 p-3 rounded-xl mr-4">
+                            <i class="fas fa-chart-bar text-cafe-purple text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Analytics & Reports</h2>
+                            <p class="text-gray-600">Insights into your cafe performance</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <label class="text-sm font-semibold text-gray-700 mr-3">Time Period:</label>
+                        <select id="analyticsTimePeriod" 
+                                class="px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cafe-purple text-sm"
+                                onchange="loadAnalyticsData()">
                             <option value="7">Last 7 Days</option>
                             <option value="30" selected>Last 30 Days</option>
                             <option value="90">Last 90 Days</option>
@@ -176,25 +463,40 @@
                 </div>
             </div>
 
-            <!-- Sales Trends Chart -->
+            <!-- Analytics Charts Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div class="bg-white rounded-lg shadow">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-bold">Daily Sales Trends</h3>
+                <!-- Sales Trends Chart -->
+                <div class="gradient-card rounded-2xl animate-slide-in">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex items-center">
+                            <div class="bg-cafe-green bg-opacity-20 p-2 rounded-lg mr-3">
+                                <i class="fas fa-chart-line text-cafe-green"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-800">Daily Sales Trends</h3>
+                        </div>
                     </div>
                     <div class="p-6">
                         <canvas id="salesChart" width="400" height="200"></canvas>
-                        <div id="salesChartData" class="mt-4 text-sm text-gray-600">Loading chart...</div>
+                        <div id="salesChartData" class="mt-4 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>Loading chart data...
+                        </div>
+                        
+                        <!-- Detailed Daily Sales Data Table -->
+                        <div id="dailySalesTable" class="mt-6"></div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow">
+                <!-- Popular Items Chart -->
+                <div class="gradient-card rounded-2xl animate-slide-in" style="animation-delay: 0.1s;">
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h3 class="text-lg font-bold">Peak Hours Analysis</h3>
                     </div>
                     <div class="p-6">
                         <canvas id="peakHoursChart" width="400" height="200"></canvas>
                         <div id="peakHoursData" class="mt-4 text-sm text-gray-600">Loading chart...</div>
+                        
+                        <!-- Detailed Hourly Data Table -->
+                        <div id="hourlyDataTable" class="mt-6"></div>
                     </div>
                 </div>
             </div>
@@ -345,6 +647,99 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Daily Orders Detail Modal -->
+    <div id="ordersDetailModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-shopping-bag text-tea-green mr-2"></i>
+                    Daily Orders Details
+                </h3>
+                <button onclick="closeOrdersDetail()" class="text-gray-500 hover:text-gray-700 text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Orders Summary -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-gradient-to-r from-tea-green to-tea-light-green text-white p-4 rounded-xl">
+                    <div class="text-2xl font-bold" id="modalTotalOrders">0</div>
+                    <div class="text-sm opacity-90">Total Orders</div>
+                </div>
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-xl">
+                    <div class="text-2xl font-bold" id="modalCompletedOrders">0</div>
+                    <div class="text-sm opacity-90">Completed</div>
+                </div>
+                <div class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-xl">
+                    <div class="text-2xl font-bold" id="modalPendingOrders">0</div>
+                    <div class="text-sm opacity-90">Pending</div>
+                </div>
+            </div>
+            
+            <!-- Orders List -->
+            <div class="bg-gray-50 rounded-xl p-4">
+                <h4 class="text-lg font-semibold mb-4">Today's Orders</h4>
+                <div id="dailyOrdersList" class="space-y-3">
+                    <!-- Orders will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Revenue Detail Modal -->
+    <div id="revenueDetailModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">
+                    <i class="fas fa-chart-line text-tea-green mr-2"></i>
+                    Daily Revenue Breakdown
+                </h3>
+                <button onclick="closeRevenueDetail()" class="text-gray-500 hover:text-gray-700 text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Revenue Summary -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-gradient-to-r from-tea-green to-tea-light-green text-white p-4 rounded-xl">
+                    <div class="text-2xl font-bold" id="modalTotalRevenue">₹0.00</div>
+                    <div class="text-sm opacity-90">Total Revenue</div>
+                </div>
+                <div class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-xl">
+                    <div class="text-2xl font-bold" id="modalAvgOrderValue">₹0.00</div>
+                    <div class="text-sm opacity-90">Avg Order Value</div>
+                </div>
+                <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-4 rounded-xl">
+                    <div class="text-2xl font-bold" id="modalTopCategory">-</div>
+                    <div class="text-sm opacity-90">Top Category</div>
+                </div>
+                <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white p-4 rounded-xl">
+                    <div class="text-2xl font-bold" id="modalGrowthRate">+0%</div>
+                    <div class="text-sm opacity-90">Growth Rate</div>
+                </div>
+            </div>
+            
+            <!-- Revenue Breakdown -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Hourly Breakdown -->
+                <div class="bg-gray-50 rounded-xl p-4">
+                    <h4 class="text-lg font-semibold mb-4">Hourly Revenue</h4>
+                    <div id="hourlyRevenueChart" class="space-y-2">
+                        <!-- Hourly data will be populated here -->
+                    </div>
+                </div>
+                
+                <!-- Category Breakdown -->
+                <div class="bg-gray-50 rounded-xl p-4">
+                    <h4 class="text-lg font-semibold mb-4">Revenue by Category</h4>
+                    <div id="categoryRevenueChart" class="space-y-3">
+                        <!-- Category data will be populated here -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from app import db, socketio
 from app.models.models import MenuItem, Category, Table, Order, OrderItem
 from app.utils import admin_required
-from datetime import datetime
+from datetime import datetime, timedelta
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -344,7 +344,7 @@ def get_product_performance(current_user):
         from sqlalchemy import func
         
         days_back = int(request.args.get('days', 30))
-        start_date = datetime.utcnow().date() - timedelta(days=days_back)
+        start_date = datetime.now().date() - timedelta(days=days_back)
         
         # Product performance metrics
         product_stats = db.session.query(
@@ -355,9 +355,10 @@ def get_product_performance(current_user):
             func.sum(OrderItem.quantity * OrderItem.price_at_time).label('total_revenue'),
             func.count(func.distinct(Order.id)).label('order_count'),
             func.avg(OrderItem.price_at_time).label('avg_price')
-        ).join(OrderItem)\
-         .join(Order)\
-         .join(Category)\
+        ).select_from(MenuItem)\
+         .join(Category, Category.id == MenuItem.category_id)\
+         .join(OrderItem, OrderItem.menu_item_id == MenuItem.id)\
+         .join(Order, Order.id == OrderItem.order_id)\
          .filter(
              func.date(Order.created_at) >= start_date,
              Order.status == 'completed'
@@ -388,7 +389,7 @@ def get_daily_trends(current_user):
         from sqlalchemy import func
         
         days_back = int(request.args.get('days', 30))
-        start_date = datetime.utcnow().date() - timedelta(days=days_back)
+        start_date = datetime.now().date() - timedelta(days=days_back)
         
         # Daily trends
         daily_stats = db.session.query(
@@ -406,7 +407,7 @@ def get_daily_trends(current_user):
         return jsonify({
             'success': True,
             'data': [{
-                'date': row.date.isoformat(),
+                'date': str(row.date),
                 'order_count': row.order_count,
                 'revenue': float(row.revenue or 0),
                 'avg_order_value': float(row.avg_order_value or 0)
@@ -423,7 +424,7 @@ def get_category_performance(current_user):
         from sqlalchemy import func
         
         days_back = int(request.args.get('days', 30))
-        start_date = datetime.utcnow().date() - timedelta(days=days_back)
+        start_date = datetime.now().date() - timedelta(days=days_back)
         
         # Category performance
         category_stats = db.session.query(
@@ -431,9 +432,10 @@ def get_category_performance(current_user):
             func.sum(OrderItem.quantity).label('total_quantity'),
             func.sum(OrderItem.quantity * OrderItem.price_at_time).label('total_revenue'),
             func.count(func.distinct(Order.id)).label('order_count')
-        ).join(MenuItem)\
-         .join(OrderItem)\
-         .join(Order)\
+        ).select_from(Category)\
+         .join(MenuItem, MenuItem.category_id == Category.id)\
+         .join(OrderItem, OrderItem.menu_item_id == MenuItem.id)\
+         .join(Order, Order.id == OrderItem.order_id)\
          .filter(
              func.date(Order.created_at) >= start_date,
              Order.status == 'completed'
@@ -449,6 +451,126 @@ def get_category_performance(current_user):
                 'total_revenue': float(row.total_revenue),
                 'order_count': row.order_count
             } for row in category_stats]
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Additional Analytics Endpoints for Interactive Dashboard
+@admin_bp.route('/analytics/revenue-detail', methods=['GET'])
+@admin_required
+def get_revenue_detail(current_user):
+    try:
+        from sqlalchemy import func, extract
+        from datetime import datetime, timedelta
+        
+        today = datetime.utcnow().date()
+        yesterday = today - timedelta(days=1)
+        
+        # Get today's orders
+        today_orders = Order.query.filter(
+            func.date(Order.created_at) == today,
+            Order.status.in_(['completed', 'ready'])
+        ).all()
+        
+        # Get yesterday's orders for comparison
+        yesterday_orders = Order.query.filter(
+            func.date(Order.created_at) == yesterday,
+            Order.status.in_(['completed', 'ready'])
+        ).all()
+        
+        # Calculate basic metrics
+        total_revenue = sum(order.total_amount for order in today_orders)
+        yesterday_revenue = sum(order.total_amount for order in yesterday_orders)
+        growth_rate = ((total_revenue - yesterday_revenue) / yesterday_revenue * 100) if yesterday_revenue > 0 else 0
+        avg_order_value = total_revenue / len(today_orders) if today_orders else 0
+        
+        # Hourly revenue breakdown
+        hourly_revenue = {}
+        for hour in range(24):
+            hourly_revenue[hour] = 0
+        
+        for order in today_orders:
+            hour = order.created_at.hour
+            hourly_revenue[hour] += float(order.total_amount)
+        
+        hourly_data = [{'hour': hour, 'revenue': revenue} for hour, revenue in hourly_revenue.items()]
+        
+        # Category revenue breakdown
+        category_revenue = db.session.query(
+            Category.name,
+            func.sum(OrderItem.quantity * OrderItem.price_at_time).label('revenue')
+        ).join(MenuItem, Category.id == MenuItem.category_id)\
+         .join(OrderItem, MenuItem.id == OrderItem.menu_item_id)\
+         .join(Order, OrderItem.order_id == Order.id)\
+         .filter(
+             func.date(Order.created_at) == today,
+             Order.status.in_(['completed', 'ready'])
+         ).group_by(Category.name)\
+         .order_by(func.sum(OrderItem.quantity * OrderItem.price_at_time).desc())\
+         .all()
+        
+        total_category_revenue = sum(float(row.revenue) for row in category_revenue)
+        category_data = [{
+            'category': row.name,
+            'revenue': float(row.revenue),
+            'revenue_total': total_category_revenue
+        } for row in category_revenue]
+        
+        # Find top category
+        top_category = category_data[0]['category'] if category_data else 'N/A'
+        
+        return jsonify({
+            'success': True,
+            'total_revenue': float(total_revenue),
+            'avg_order_value': float(avg_order_value),
+            'growth_rate': float(growth_rate),
+            'top_category': top_category,
+            'hourly_revenue': hourly_data,
+            'category_revenue': category_data
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/orders/daily', methods=['GET'])
+@admin_required
+def get_daily_orders(current_user):
+    try:
+        from sqlalchemy import func
+        from datetime import datetime
+        
+        today = datetime.utcnow().date()
+        
+        # Get today's orders with items
+        orders = Order.query.filter(
+            func.date(Order.created_at) == today
+        ).order_by(Order.created_at.desc()).all()
+        
+        orders_data = []
+        for order in orders:
+            order_dict = {
+                'id': order.id,
+                'table_number': order.table_number,
+                'status': order.status,
+                'total_amount': float(order.total_amount),
+                'created_at': order.created_at.isoformat(),
+                'items': []
+            }
+            
+            # Get order items
+            for item in order.items:
+                order_dict['items'].append({
+                    'name': item.menu_item.name,
+                    'quantity': item.quantity,
+                    'price': float(item.price_at_time)
+                })
+            
+            orders_data.append(order_dict)
+        
+        return jsonify({
+            'success': True,
+            'orders': orders_data
         })
         
     except Exception as e:

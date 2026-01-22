@@ -3,16 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Virtual Cafe - Menu</title>
+    <title>Virtual Cafe - Delicious Food Awaits</title>
+    <!-- Development Mode: Using Tailwind CDN for rapid prototyping. For production, use PostCSS plugin or Tailwind CLI -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'cafe-brown': '#8B4513',
-                        'cafe-cream': '#F5F5DC'
+                        'tea-green': '#2D5016',
+                        'tea-light-green': '#4A7C59',
+                        'tea-cream': '#F5F1E8',
+                        'tea-dark-green': '#1B3209',
+                        'tea-accent': '#6B8E23'
+                    },
+                    fontFamily: {
+                        'poppins': ['Poppins', 'sans-serif']
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 3s infinite',
+                        'pulse-slow': 'pulse 3s infinite',
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out'
                     }
                 }
             }
@@ -42,88 +57,355 @@
                 font-size: 16px !important;
             }
         }
+        
+        /* Custom animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #2D5016 0%, #4A7C59 100%);
+        }
+        
+        .food-card {
+            transition: all 0.3s ease;
+        }
+        
+        .food-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .pulse-ring {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.33);
+            }
+            80%, 100% {
+                opacity: 0;
+            }
+        }
+        
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .search-highlight {
+            background: linear-gradient(45deg, #fef3c7, #fde68a);
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .menu-section {
+            scroll-margin-top: 120px;
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .animate-slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
     </style>
 </head>
-<body class="bg-cafe-cream min-h-screen">
-    <!-- Header -->
-    <header class="bg-cafe-brown text-white p-3 sm:p-4 shadow-lg sticky top-0 z-40">
-        <div class="container mx-auto px-2">
-            <h1 class="text-xl sm:text-2xl font-bold text-center">Virtual Cafe</h1>
-            <div id="tableInfo" class="text-center mt-1 text-xs sm:text-sm opacity-90">
-                <span id="tableNumber">Table: --</span>
+<body class="bg-gray-50 min-h-screen font-poppins">
+    <!-- Hero Header with Gradient -->
+    <header class="gradient-bg text-white relative overflow-hidden">
+        <div class="absolute inset-0 opacity-20">
+            <div class="floating absolute top-10 left-10 text-6xl">☕</div>
+            <div class="floating absolute top-20 right-20 text-4xl" style="animation-delay: 1s;">🥐</div>
+            <div class="floating absolute bottom-10 left-1/3 text-5xl" style="animation-delay: 2s;">🍰</div>
+        </div>
+        <div class="container mx-auto px-4 py-6 relative z-10">
+            <div class="text-center">
+                <div class="flex items-center justify-center mb-4">
+                    <i class="fas fa-leaf text-4xl sm:text-5xl text-tea-cream mr-4"></i>
+                    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+                        The Tea Estate
+                    </h1>
+                </div>
+                <p class="text-lg sm:text-xl text-green-100 mb-4">Food • Folks • Fun - Fresh & Delicious</p>
+                <div id="tableInfo" class="bg-white bg-opacity-20 backdrop-blur-sm rounded-full px-6 py-2 inline-block">
+                    <i class="fas fa-map-marker-alt text-tea-cream mr-2"></i>
+                    <span id="tableNumber" class="font-medium">Table: --</span>
+                </div>
             </div>
         </div>
+        <div class="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-gray-50 to-transparent"></div>
     </header>
 
-    <!-- Cart Summary (Fixed) -->
-    <div id="cartSummary" class="fixed inset-x-2 top-16 sm:top-20 sm:right-4 sm:left-auto sm:max-w-sm bg-white rounded-lg shadow-lg p-3 sm:p-4 z-50 hidden max-h-96 overflow-y-auto">
-        <div class="flex justify-between items-center mb-3">
-            <h3 class="font-bold text-sm sm:text-base">Your Order</h3>
-            <button onclick="closeCart()" class="text-gray-500 hover:text-gray-700 p-1">
-                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        </div>
-        <div id="cartItems"></div>
-        <div class="border-t pt-3 mt-3">
-            <div class="flex justify-between font-bold">
-                <span>Total:</span>
-                <span id="cartTotal">$0.00</span>
+    <!-- Search Section -->
+    <div class="bg-white shadow-md sticky top-0 z-30">
+        <div class="container mx-auto px-4 py-4">
+            <!-- Search Bar -->
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-search text-gray-400"></i>
+                </div>
+                <input type="text" id="searchInput" 
+                       class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-tea-green focus:border-transparent text-lg"
+                       placeholder="Search for dishes, cuisines...">
+                <button id="clearSearch" class="absolute inset-y-0 right-0 pr-3 flex items-center hidden">
+                    <i class="fas fa-times text-gray-400 hover:text-gray-600"></i>
+                </button>
             </div>
-            <button onclick="placeOrder()" id="placeOrderBtn" 
-                class="w-full bg-cafe-brown text-white py-2 px-4 rounded mt-3 hover:bg-opacity-90 disabled:opacity-50">
+        </div>
+    </div>
+
+    <!-- Floating Cart Button (Zomato Style) -->
+    <div id="floatingCart" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 hidden">
+        <button onclick="toggleCart()" class="bg-gradient-to-r from-tea-green to-tea-light-green text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center space-x-3 min-w-[200px] hover:shadow-3xl transition-all transform hover:scale-105">
+            <div class="bg-white bg-opacity-20 p-2 rounded-lg">
+                <i class="fas fa-shopping-cart text-lg"></i>
+            </div>
+            <div class="flex-1 text-left">
+                <div class="text-sm font-medium opacity-90" id="cartItemCount">0 items</div>
+                <div class="text-lg font-bold" id="floatingCartTotal">₹0.00</div>
+            </div>
+            <i class="fas fa-chevron-up text-lg"></i>
+        </button>
+    </div>
+
+    <!-- Cart Modal (Zomato Style) -->
+    <div id="cartModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm hidden" style="z-index: 9999;">
+        <div class="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto animate-slide-up" style="z-index: 10000;">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">Your Order</h3>
+                    <p class="text-gray-600" id="cartSubtitle">Review your items</p>
+                </div>
+                <button onclick="closeCart()" class="bg-gray-100 hover:bg-gray-200 p-3 rounded-full transition-all">
+                    <i class="fas fa-times text-gray-600"></i>
+                </button>
+            </div>
+            
+            <div id="cartItems" class="mb-6"></div>
+            
+            <!-- Order Summary -->
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-4 mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-gray-600">Subtotal</span>
+                    <span class="font-semibold" id="cartSubtotal">₹0.00</span>
+                </div>
+                <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-300">
+                    <span class="text-gray-600">Service Charge</span>
+                    <span class="font-semibold">₹20.00</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-bold text-gray-800">Total</span>
+                    <span class="text-2xl font-bold text-tea-green" id="cartTotal">₹0.00</span>
+                </div>
+            </div>
+            
+            <button id="placeOrderBtn" onclick="placeOrder()" 
+                class="w-full bg-gradient-to-r from-tea-green to-tea-light-green text-white py-4 px-6 rounded-2xl font-bold text-lg hover:from-tea-light-green hover:to-tea-green transform transition-all hover:scale-105 shadow-lg disabled:opacity-50" 
+                disabled>
+                <i class="fas fa-rocket mr-2"></i>
                 Place Order
             </button>
         </div>
     </div>
 
-    <!-- Floating Cart Button -->
-    <button onclick="toggleCart()" id="cartBtn" 
-        class="fixed bottom-4 right-4 bg-cafe-brown text-white rounded-full p-3 sm:p-4 shadow-lg hover:bg-opacity-90 z-50 transition-all">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5 6m0 0h9m-9 0h9"></path>
-        </svg>
-        <span id="cartCount" class="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-red-500 text-white rounded-full text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 hidden min-w-[1.25rem] text-center">0</span>
-    </button>
-
-    <!-- Current Orders Section -->
-    <div id="currentOrdersSection" class="container mx-auto p-4 hidden">
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <h2 class="text-xl font-bold mb-4">Your Current Orders</h2>
+    <!-- Current Orders Section with Enhanced Design -->
+    <div id="currentOrdersSection" class="container mx-auto p-4 hidden animate-fade-in">
+        <div class="bg-white rounded-2xl shadow-xl p-6 mb-6 border border-gray-100">
+            <div class="flex items-center mb-6">
+                <i class="fas fa-clock text-cafe-orange text-2xl mr-3"></i>
+                <h2 class="text-2xl font-bold text-gray-800">Your Active Orders</h2>
+            </div>
             <div id="currentOrders"></div>
         </div>
     </div>
 
-    <!-- Menu Section -->
-    <main class="container mx-auto p-2 sm:p-4 pb-20">
-        <div id="loadingSpinner" class="flex justify-center items-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-cafe-brown"></div>
+    <!-- Enhanced Menu Section -->
+    <main class="container mx-auto p-4 pb-24">
+        <!-- Loading Spinner with Modern Design -->
+        <div id="loadingSpinner" class="flex flex-col items-center justify-center py-16">
+            <div class="relative">
+                <div class="w-16 h-16 border-4 border-cafe-orange border-opacity-20 rounded-full animate-spin"></div>
+                <div class="w-16 h-16 border-4 border-cafe-orange border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+            </div>
+            <p class="text-gray-600 mt-4 text-lg">Loading delicious menu...</p>
         </div>
         
         <div id="menuContent" class="hidden">
+            <!-- Search Results Header -->
+            <div id="searchResults" class="mb-6 hidden">
+                <div class="bg-gradient-to-r from-tea-green to-tea-light-green rounded-2xl p-4 text-white mb-4">
+                    <h2 class="text-xl font-bold mb-1">Search Results</h2>
+                    <p id="searchResultsText" class="opacity-90">Found items matching your search</p>
+                </div>
+            </div>
+            
             <div id="categoriesContainer"></div>
         </div>
 
-        <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <span id="errorText"></span>
+        <!-- Enhanced Error Message -->
+        <div id="errorMessage" class="hidden bg-red-50 border-l-4 border-red-400 p-6 rounded-r-xl mb-6 animate-fade-in">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-400 text-xl mr-3"></i>
+                <div>
+                    <h3 class="text-red-800 font-semibold">Oops! Something went wrong</h3>
+                    <p id="errorText" class="text-red-600 mt-1"></p>
+                </div>
+            </div>
         </div>
     </main>
 
     <!-- Order Confirmation Modal -->
-    <div id="orderModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 hidden p-4">
-        <div class="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <!-- Enhanced Order Confirmation Modal -->
+    <div id="orderModal" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-60 hidden p-4">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto transform transition-all animate-slide-up shadow-2xl">
             <div class="text-center">
-                <div class="text-green-500 text-4xl sm:text-6xl mb-3 sm:mb-4">✓</div>
-                <h3 class="text-lg sm:text-xl font-bold mb-2">Order Placed Successfully!</h3>
-                <p class="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base">Your order has been sent to the kitchen.</p>
-                <div id="orderDetails" class="bg-gray-50 p-3 sm:p-4 rounded mb-3 sm:mb-4 text-left text-sm sm:text-base">
+                <!-- Success Animation -->
+                <div class="relative mb-6">
+                    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto animate-pulse-slow">
+                        <i class="fas fa-check-circle text-green-500 text-4xl"></i>
+                    </div>
+                    <div class="absolute inset-0 w-20 h-20 bg-green-200 rounded-full mx-auto opacity-20 animate-ping"></div>
+                </div>
+                
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">Order Confirmed! 🎉</h3>
+                <p class="text-gray-600 mb-4 text-lg">Your delicious meal is being prepared with love</p>
+                
+                <!-- Order Progress -->
+                <div class="bg-gray-50 rounded-2xl p-4 mb-6">
+                    <div class="flex items-center justify-between text-sm text-gray-600 mb-2">
+                        <span>Estimated time:</span>
+                        <span class="font-semibold text-cafe-orange">15-20 mins</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-gradient-to-r from-cafe-orange to-cafe-red h-2 rounded-full w-1/4 animate-pulse"></div>
+                    </div>
+                </div>
+                
+                <div id="orderDetails" class="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-2xl mb-6 text-left">
                     <!-- Order details will be populated here -->
                 </div>
+                
                 <button onclick="closeOrderModal()" 
-                    class="bg-cafe-brown text-white px-4 sm:px-6 py-2 rounded hover:bg-opacity-90 text-sm sm:text-base">
-                    Continue
+                    class="w-full bg-gradient-to-r from-cafe-green to-green-600 text-white px-6 py-3 rounded-xl font-semibold text-lg hover:from-green-600 hover:to-cafe-green transform transition-all hover:scale-105 shadow-lg">
+                    <i class="fas fa-thumbs-up mr-2"></i>
+                    Awesome, Thanks!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating MENU Button -->
+    <div id="floatingCategoryButton" class="fixed bottom-24 right-6 z-40">
+        <button onclick="openCategoryMenu()" class="bg-gradient-to-r from-tea-green to-tea-light-green text-white px-8 py-5 rounded-full shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 flex items-center space-x-2 font-bold text-lg border-2 border-white backdrop-blur-sm" title="Browse Menu Categories">
+            <i class="fas fa-bars text-xl"></i>
+            <span class="ml-2 font-medium">MENU</span>
+        </button>
+    </div>
+
+    <!-- Category Menu Modal -->
+    <div id="categoryMenuModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-end justify-center hidden" style="z-index: 10001;">
+        <div class="bg-gray-900 text-white rounded-t-3xl w-full max-w-lg mx-4 mb-8 animate-slide-up max-h-[80vh] overflow-hidden" style="z-index: 10002;">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-700">
+                <h3 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-utensils text-tea-light-green mr-3"></i>
+                    Menu Categories
+                </h3>
+                <button onclick="closeCategoryMenu()" class="text-gray-400 hover:text-white text-xl p-2">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Categories List -->
+            <div class="p-4 overflow-y-auto max-h-[70vh]">
+                <!-- Special Sections -->
+                <div class="mb-6">
+                    <div class="mb-4">
+                        <button onclick="showAllItems()" class="w-full text-left py-4 px-2 hover:bg-gray-800 rounded-lg transition-colors flex items-center justify-between group">
+                            <span class="text-tea-light-green text-lg font-medium">Your Orders and Collections</span>
+                            <div class="flex items-center">
+                                <span class="text-white text-lg mr-3" id="userOrdersCount">0</span>
+                            </div>
+                        </button>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <button onclick="showBestsellers()" class="w-full text-left py-4 px-2 hover:bg-gray-800 rounded-lg transition-colors flex items-center justify-between group">
+                            <span class="text-white text-lg font-medium">Most ordered together</span>
+                            <div class="flex items-center">
+                                <span class="text-white text-lg mr-3" id="bestsellerCount">4</span>
+                            </div>
+                        </button>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <button onclick="showAllItems()" class="w-full text-left py-4 px-2 hover:bg-gray-800 rounded-lg transition-colors flex items-center justify-between group">
+                            <span class="text-white text-lg font-medium">Recommended for you</span>
+                            <div class="flex items-center">
+                                <span class="text-white text-lg mr-3" id="recommendedCount">25</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Regular Categories -->
+                <div id="categoryMenuList" class="space-y-2">
+                    <!-- Categories will be populated here -->
+                </div>
+            </div>
+            
+            <!-- Close Button -->
+            <div class="p-4 border-t border-gray-700">
+                <button onclick="closeCategoryMenu()" class="w-full bg-gray-800 hover:bg-gray-700 text-white py-3 px-6 rounded-xl font-medium transition-colors flex items-center justify-center">
+                    <i class="fas fa-times mr-2"></i>
+                    Close
                 </button>
             </div>
         </div>
